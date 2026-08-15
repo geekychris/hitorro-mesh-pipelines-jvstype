@@ -1,0 +1,18 @@
+{
+  "name": "demo_enriched_article",
+  "description": "Type for enriched news articles emitted by the enriched-articles pipeline. Maps every field the pipeline groovy-map step writes onto a JVS index-group so JVSLuceneIndexWriter projects each one to the right Lucene field type (identifier vs text vs long vs multi-valued).",
+  "fields": [
+    { "name": "id",              "type": "core_string", "groups": [ { "name": "index", "method": "identifier" } ] },
+    { "name": "title",           "type": "core_string", "groups": [ { "name": "index", "method": "text" } ] },
+    { "name": "body",            "type": "core_string", "groups": [ { "name": "index", "method": "text" } ] },
+    { "name": "country",         "type": "core_string", "groups": [ { "name": "index", "method": "identifier" } ] },
+    { "name": "word_count",      "type": "core_long",   "groups": [ { "name": "index", "method": "long" } ] },
+    { "name": "sentence_count",  "type": "core_long",   "groups": [ { "name": "index", "method": "long" } ] },
+    { "name": "char_length",     "type": "core_long",   "groups": [ { "name": "index", "method": "long" } ] },
+    { "name": "avg_sentence_len","type": "core_long",   "groups": [ { "name": "index", "method": "long" } ] },
+    { "name": "key_terms",       "type": "core_string", "vector": true,
+      "groups": [ { "name": "index", "method": "identifier" } ] },
+    { "name": "enriched_at",     "type": "core_string", "groups": [ { "name": "index", "method": "identifier" } ] },
+    { "name": "event_id",        "type": "core_string", "groups": [ { "name": "index", "method": "identifier" } ] }
+  ]
+}

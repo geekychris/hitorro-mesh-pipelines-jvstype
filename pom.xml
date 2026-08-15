@@ -55,6 +55,15 @@
                 </exclusion>
             </exclusions>
         </dependency>
+        <!-- Full IndexManager + JVSLuceneIndexWriter for the jvs-lucene sink.
+             Type-aware Lucene projection: identifier → StringField, text →
+             analyzed TextField, mls → per-language TextField, long → LongPoint.
+             Same jar the fleet-retrieval service uses to read back. -->
+        <dependency>
+            <groupId>com.hitorro</groupId>
+            <artifactId>hitorro-index</artifactId>
+            <version>3.0.1</version>
+        </dependency>
 
         <dependency>
             <groupId>org.junit.jupiter</groupId>
