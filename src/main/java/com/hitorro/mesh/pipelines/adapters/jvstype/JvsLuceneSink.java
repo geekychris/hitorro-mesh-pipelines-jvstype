@@ -135,6 +135,16 @@ public final class JvsLuceneSink implements Sink {
         }
     }
 
+    /**
+     * Public alias for {@link #loadTypeJson(String)} — reused by other
+     * adapters in this package (e.g. {@link JvsEnrichStepAdapter}) that
+     * need the same file:/classpath:/http: loader without duplicating
+     * the URL-scheme dispatch.
+     */
+    public static JsonNode loadTypeJsonPublic(String url) throws IOException, InterruptedException {
+        return loadTypeJson(url);
+    }
+
     /** Load type JSON from a file:, classpath:, or http(s):// URL. */
     private static JsonNode loadTypeJson(String url) throws IOException, InterruptedException {
         if (url == null || url.isBlank()) throw new IllegalArgumentException("typeJsonResource is required");

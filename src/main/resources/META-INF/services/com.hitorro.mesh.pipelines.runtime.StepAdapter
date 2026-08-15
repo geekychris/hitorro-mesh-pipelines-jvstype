@@ -1,1 +1,3 @@
 com.hitorro.mesh.pipelines.adapters.jvstype.JvsGroovyStepAdapter
+com.hitorro.mesh.pipelines.adapters.jvstype.JvsEnrichStepAdapter
+com.hitorro.mesh.pipelines.adapters.jvstype.JvsTranslateStepAdapter
