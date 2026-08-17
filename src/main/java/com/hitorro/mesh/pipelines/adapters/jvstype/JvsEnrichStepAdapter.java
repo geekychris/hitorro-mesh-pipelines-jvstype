@@ -4,23 +4,21 @@
 package com.hitorro.mesh.pipelines.adapters.jvstype;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.hitorro.jsontypesystem.BaseT;
-import com.hitorro.jsontypesystem.Group;
 import com.hitorro.jsontypesystem.JVS;
+import com.hitorro.jsontypesystem.JsonTypeSystem;
 import com.hitorro.jsontypesystem.Type;
 import com.hitorro.jsontypesystem.executors.EnrichExecutionBuilderMapper;
 import com.hitorro.jsontypesystem.executors.ExecutionBuilder;
+import com.hitorro.jsontypesystem.executors.GroupTagPredicates;
 import com.hitorro.jsontypesystem.executors.ProjectionContext;
+import com.hitorro.jsontypesystem.resources.TypeJsonLoader;
 import com.hitorro.mesh.pipelines.model.StepSpec;
 import com.hitorro.mesh.pipelines.runtime.StepAdapter;
 import com.hitorro.util.core.events.cache.HashCache;
 
 import java.io.IOException;
-import java.util.List;
 import java.util.Set;
 import java.util.function.Function;
-import java.util.function.Predicate;
 
 /**
  * Runs the JVS type-system enrichment projection over every row. Wraps
@@ -38,8 +36,6 @@ import java.util.function.Predicate;
  */
 public final class JvsEnrichStepAdapter implements StepAdapter {
 
-    private static final ObjectMapper JSON = new ObjectMapper();
-
     @Override
     public boolean handles(StepSpec spec) {
         return spec instanceof StepSpec.JvsEnrich;
@@ -50,11 +46,27 @@ public final class JvsEnrichStepAdapter implements StepAdapter {
         StepSpec.JvsEnrich s = (StepSpec.JvsEnrich) spec;
 
         // Load the type up front so every row uses the same instance.
+        // First read the JSON so we know its "name", then try to route
+        // through JsonTypeSystem — the shipped enrichment engine's dynamic
+        // mappers resolve field paths against types looked up from the
+        // singleton cache. A locally-init'd Type isn't discoverable by
+        // sub-type references (e.g. title.mls has type mlselem, which the
+        // engine looks up via JsonTypeSystem), so path resolution across
+        // vector-shaped nested types silently no-ops. Falls back to
+        // manual init when disk lookup misses (dev / test).
         Type type;
         try {
-            JsonNode typeJson = JvsLuceneSink.loadTypeJsonPublic(s.typeJsonResource());
-            type = new Type();
-            type.init(typeJson);
+            JsonNode typeJson = TypeJsonLoader.load(s.typeJsonResource());
+            String typeName = typeJson.has("name") ? typeJson.get("name").asText() : null;
+            Type looked = typeName != null
+                    ? JsonTypeSystem.getMe().getType(typeName)
+                    : null;
+            if (looked != null) {
+                type = looked;
+            } else {
+                type = new Type();
+                type.init(typeJson);
+            }
         } catch (IOException | InterruptedException e) {
             throw new UnsupportedOperationException(
                 "jvs-enrich: cannot load type from " + s.typeJsonResource(), e);
@@ -63,19 +75,21 @@ public final class JvsEnrichStepAdapter implements StepAdapter {
         // Prime the ExecutionBuilder cache for this tag set. Reused per row.
         String[] tags = s.tags() == null ? new String[]{"basic"} : s.tags().toArray(new String[0]);
         HashCache<Type, ExecutionBuilder> cache = buildEnrichCache(tags);
+        final Type resolvedType = type;
 
         return row -> {
             try {
+                // Let JVS auto-resolve type from the row's "type" field via
+                // JsonTypeSystem — mirrors JVS.read() in the Spring app, and
+                // is what the dynamic mappers expect (they walk sub-type
+                // references via JsonTypeSystem, so the root Type must come
+                // from there too or path resolution silently misses).
                 JVS jvs = new JVS(row);
-                jvs.setType(type);
-                // Matches the shipped JvsEnrichMapper pattern exactly:
-                // source = the row we want to mutate; target = fresh JVS
-                // that the projection can use as scratch. The dynamic
-                // mappers write back into source at their .fields[] paths.
+                if (jvs.getType() == null) jvs.setType(resolvedType);
                 ProjectionContext pc = new ProjectionContext();
                 pc.source = jvs;
                 pc.target = new JVS();
-                ExecutionBuilder builder = cache.get(type);
+                ExecutionBuilder builder = cache.get(jvs.getType() != null ? jvs.getType() : resolvedType);
                 if (builder != null && builder.getCurrentNode() != null) {
                     builder.getCurrentNode().project(pc);
                 }
@@ -88,38 +102,9 @@ public final class JvsEnrichStepAdapter implements StepAdapter {
 
     private static HashCache<Type, ExecutionBuilder> buildEnrichCache(String[] tags) {
         EnrichExecutionBuilderMapper mapper = new EnrichExecutionBuilderMapper();
-        Predicate<BaseT> tagPredicate;
-        if (tags == null || tags.length == 0) {
-            // Run every enrich group regardless of tags.
-            tagPredicate = new GroupTagAnyPredicate();
-        } else {
-            tagPredicate = new GroupTagMatchPredicate(Set.of(tags))
-                    .or(new GroupTagNullPredicate());
-        }
-        mapper.setPredicate(mapper.getPredicate().and(tagPredicate));
+        Set<String> tagSet = tags == null ? Set.of() : Set.of(tags);
+        mapper.setPredicate(mapper.getPredicate().and(GroupTagPredicates.anyOfOrUntagged(tagSet)));
         String key = "JvsEnrich:" + String.join(",", tags == null ? new String[0] : tags);
         return Type.getExecBuilderCache(key, mapper);
-    }
-
-    private static class GroupTagMatchPredicate implements Predicate<BaseT> {
-        private final Set<String> tags;
-        GroupTagMatchPredicate(Set<String> tags) { this.tags = tags; }
-        @Override public boolean test(BaseT b) {
-            if (!(b instanceof Group g)) return false;
-            List<String> gt = g.getTags();
-            if (gt == null) return false;
-            for (String t : gt) if (tags.contains(t)) return true;
-            return false;
-        }
-    }
-    private static class GroupTagNullPredicate implements Predicate<BaseT> {
-        @Override public boolean test(BaseT b) {
-            if (!(b instanceof Group g)) return false;
-            List<String> gt = g.getTags();
-            return gt == null || gt.isEmpty();
-        }
-    }
-    private static class GroupTagAnyPredicate implements Predicate<BaseT> {
-        @Override public boolean test(BaseT b) { return b instanceof Group; }
     }
 }
