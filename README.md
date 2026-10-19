@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="assets/logo.png" alt="Hitorro Mesh Pipelines Jvstype logo" width="180">
+</p>
+
 # hitorro-mesh-pipelines-jvstype
 
 JVS type-system adapter for
