@@ -3,9 +3,10 @@
  */
 package com.hitorro.mesh.pipelines.adapters.jvstype;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
+import com.hitorro.util.json.JsonMappers;
+import tools.jackson.databind.node.ObjectNode;
 import com.hitorro.mesh.pipelines.model.SinkSpec;
 import com.hitorro.mesh.pipelines.model.StepSpec;
 import org.junit.jupiter.api.Test;
@@ -32,7 +33,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
  */
 class JvsGroovyStepAdapterTest {
 
-    private static final ObjectMapper JSON = new ObjectMapper();
+    private static final ObjectMapper JSON = JsonMappers.json();
 
     // -------------------------------------------------- handles()
 
@@ -74,11 +75,11 @@ class JvsGroovyStepAdapterTest {
 
         JsonNode out = step.apply(row);
         assertThat(out).isNotNull();
-        assertThat(out.get("id").asText()).isEqualTo("u-1");
-        assertThat(out.get("name").asText()).isEqualTo("Alice");
+        assertThat(out.get("id").asString()).isEqualTo("u-1");
+        assertThat(out.get("name").asString()).isEqualTo("Alice");
         assertThat(out.get("age").asInt()).isEqualTo(30);
         assertThat(out.get("tags").size()).isEqualTo(2);
-        assertThat(out.get("tags").get(0).asText()).isEqualTo("dev");
+        assertThat(out.get("tags").get(0).asString()).isEqualTo("dev");
     }
 
     @Test
@@ -94,9 +95,9 @@ class JvsGroovyStepAdapterTest {
         row.put("v", 42);
 
         JsonNode out = step.apply(row);
-        assertThat(out.get("id").asText()).isEqualTo("u-1");
+        assertThat(out.get("id").asString()).isEqualTo("u-1");
         assertThat(out.get("v").asInt()).isEqualTo(42);
-        assertThat(out.get("stamp").asText()).isEqualTo("processed");
+        assertThat(out.get("stamp").asString()).isEqualTo("processed");
     }
 
     @Test
@@ -114,7 +115,7 @@ class JvsGroovyStepAdapterTest {
             row.put("i", i);
             JsonNode out = step.apply(row);
             assertThat(out.get("i").asInt()).isEqualTo(i);
-            assertThat(out.get("marker").asText()).isEqualTo("seen");
+            assertThat(out.get("marker").asString()).isEqualTo("seen");
         }
     }
 

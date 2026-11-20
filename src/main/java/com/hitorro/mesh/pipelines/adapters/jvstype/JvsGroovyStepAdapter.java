@@ -3,8 +3,9 @@
  */
 package com.hitorro.mesh.pipelines.adapters.jvstype;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
+import com.hitorro.util.json.JsonMappers;
 import com.hitorro.jsontypesystem.JVS;
 import com.hitorro.jsontypesystem.Type;
 import com.hitorro.jsontypesystem.datamapper.GroovyTransformMapper;
@@ -32,7 +33,7 @@ import java.util.function.Function;
  */
 public final class JvsGroovyStepAdapter implements StepAdapter {
 
-    private static final ObjectMapper JSON = new ObjectMapper();
+    private static final ObjectMapper JSON = JsonMappers.json();
 
     @Override
     public boolean handles(StepSpec spec) {

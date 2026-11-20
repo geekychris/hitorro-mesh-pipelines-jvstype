@@ -3,10 +3,10 @@
  */
 package com.hitorro.mesh.pipelines.adapters.jvstype;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.fasterxml.jackson.databind.node.JsonNodeFactory;
-import com.fasterxml.jackson.databind.node.ObjectNode;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.node.ArrayNode;
+import tools.jackson.databind.node.JsonNodeFactory;
+import tools.jackson.databind.node.ObjectNode;
 import com.hitorro.jsontypesystem.datamapper.HttpOllamaClient;
 import com.hitorro.mesh.pipelines.model.StepSpec;
 import com.hitorro.mesh.pipelines.runtime.StepAdapter;
@@ -14,6 +14,7 @@ import com.hitorro.mesh.pipelines.runtime.StepAdapter;
 import java.util.Iterator;
 import java.util.List;
 import java.util.function.Function;
+import com.hitorro.util.json.JsonValues;
 
 /**
  * For each MLS field named in {@link StepSpec.JvsTranslate#mlsFields},
@@ -57,7 +58,7 @@ public final class JvsTranslateStepAdapter implements StepAdapter {
                 if (!(arr instanceof ArrayNode mls)) continue;
                 JsonNode srcElem = findByLang(mls, srcLang);
                 if (srcElem == null) continue;
-                String srcText = srcElem.get("text") != null ? srcElem.get("text").asText() : null;
+                String srcText = srcElem.get("text") != null ? JsonValues.asText(srcElem.get("text")) : null;
                 if (srcText == null || srcText.isBlank()) continue;
                 for (String tgt : tgtL) {
                     if (findByLang(mls, tgt) != null) continue;  // idempotent
@@ -75,9 +76,9 @@ public final class JvsTranslateStepAdapter implements StepAdapter {
     }
 
     private static JsonNode findByLang(ArrayNode mls, String lang) {
-        for (Iterator<JsonNode> it = mls.elements(); it.hasNext(); ) {
+        for (Iterator<JsonNode> it = mls.values().iterator(); it.hasNext(); ) {
             JsonNode e = it.next();
-            if (e != null && e.has("lang") && lang.equals(e.get("lang").asText())) return e;
+            if (e != null && e.has("lang") && lang.equals(JsonValues.asText(e.get("lang")))) return e;
         }
         return null;
     }
