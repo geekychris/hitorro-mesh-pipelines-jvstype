@@ -3,7 +3,7 @@
  */
 package com.hitorro.mesh.pipelines.adapters.jvstype;
 
-import com.fasterxml.jackson.databind.JsonNode;
+import tools.jackson.databind.JsonNode;
 import com.hitorro.jsontypesystem.JVS;
 import com.hitorro.jsontypesystem.JsonTypeSystem;
 import com.hitorro.jsontypesystem.Type;
@@ -19,6 +19,7 @@ import com.hitorro.util.core.events.cache.HashCache;
 import java.io.IOException;
 import java.util.Set;
 import java.util.function.Function;
+import com.hitorro.util.json.JsonValues;
 
 /**
  * Runs the JVS type-system enrichment projection over every row. Wraps
@@ -57,7 +58,7 @@ public final class JvsEnrichStepAdapter implements StepAdapter {
         Type type;
         try {
             JsonNode typeJson = TypeJsonLoader.load(s.typeJsonResource());
-            String typeName = typeJson.has("name") ? typeJson.get("name").asText() : null;
+            String typeName = typeJson.has("name") ? JsonValues.asText(typeJson.get("name")) : null;
             Type looked = typeName != null
                     ? JsonTypeSystem.getMe().getType(typeName)
                     : null;
